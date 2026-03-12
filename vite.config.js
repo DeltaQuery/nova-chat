@@ -9,12 +9,13 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/index.jsx'),
       name: 'MaratecaChat',
       fileName: 'marateca-chat',
-      formats: ['iife'], // formato que funciona directo en browser sin bundler
+      formats: ['iife'],
     },
     rollupOptions: {
       output: {
         assetFileNames: 'marateca-chat.css',
       }
     }
-  }
+  },
+  publicDir: 'public'
 })
