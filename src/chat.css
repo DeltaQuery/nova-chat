@@ -21,8 +21,26 @@
    MÓVIL — pantalla completa
    ══════════════════════════════════════════ */
 @media (max-width: 767px) {
-
   .mc-backdrop { display: none; }
+
+  .mc-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--brand);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,196,140,.45);
+    z-index: 99998;
+    transition: transform .2s, background .2s;
+  }
+  .mc-fab svg { width: 26px; height: 26px; color: #fff; }
 
   .mc-window {
     position: fixed;
@@ -36,10 +54,7 @@
     overflow: hidden;
     z-index: 99999;
   }
-
-  .mc-fab { display: none; }
 }
-
 /* ══════════════════════════════════════════
    DESKTOP — ventana flotante
    ══════════════════════════════════════════ */
