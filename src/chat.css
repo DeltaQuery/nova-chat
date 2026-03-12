@@ -6,8 +6,7 @@
   box-sizing: border-box; margin: 0; padding: 0;
 }
 
-/* ── VARIABLES ── */
-/* Usando :root para que las variables estén disponibles en todos los elementos */
+/* ── VARIABLES DEFAULT (tema green) ── */
 :root {
   --brand:       #00C48C;
   --brand-dark:  #009E72;
@@ -43,7 +42,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 16px rgba(0,196,140,.45);
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
     z-index: 99998;
     transition: transform .2s, background .2s;
   }
@@ -61,13 +60,10 @@
     overflow: hidden;
     z-index: 99999;
   }
-}
 
-@media (max-width: 767px) {
   .mc-window.mc-closing {
     animation: slideDown .2s ease-in forwards;
   }
-
   @keyframes slideDown {
     from { opacity: 1; transform: translateY(0); }
     to   { opacity: 0; transform: translateY(30px); }
@@ -92,7 +88,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 16px rgba(0,196,140,.45);
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
     z-index: 99998;
     transition: transform .2s, background .2s;
   }
@@ -126,23 +122,20 @@
     animation: popUp .22s cubic-bezier(.34,1.56,.64,1);
   }
 
-  @keyframes popUp {
-    from { opacity: 0; transform: scale(.85); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; } to { opacity: 1; }
-  }
-}
-
-@media (min-width: 768px) {
   .mc-window.mc-closing {
     animation: popDown .2s cubic-bezier(.36,.07,.19,.97) forwards;
   }
 
+  @keyframes popUp {
+    from { opacity: 0; transform: scale(.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
   @keyframes popDown {
     from { opacity: 1; transform: scale(1); }
     to   { opacity: 0; transform: scale(.85); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
   }
 }
 
@@ -199,6 +192,47 @@
   color: #fff;
 }
 
+/* Welcome Screen */
+.mc-welcome {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 24px;
+  text-align: center;
+}
+.mc-welcome-icon {
+  font-size: 48px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.06);
+  display: flex; align-items: center; justify-content: center;
+}
+.mc-welcome h2 {
+  font-size: 20px; font-weight: 600;
+  color: var(--text-main);
+}
+.mc-welcome p {
+  font-size: 14px; color: var(--text-muted);
+  line-height: 1.5;
+}
+.mc-welcome-btn {
+  margin-top: 8px;
+  padding: 12px 28px;
+  border-radius: 24px;
+  background: var(--brand);
+  color: #fff;
+  border: none; cursor: pointer;
+  font-size: 15px; font-weight: 600;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  transition: background .2s, transform .15s;
+}
+.mc-welcome-btn:hover { background: var(--brand-dark); transform: scale(1.04); }
+.mc-welcome-btn:active { transform: scale(.97); }
+
 /* Mensajes */
 .mc-messages {
   flex: 1 1 0;
@@ -233,7 +267,7 @@
   to   { opacity: 1; transform: scale(1)   translateY(0); }
 }
 .mc-msg.bot  { background: var(--bubble-bot);  align-self: flex-start; border-bottom-left-radius: 4px; }
-.mc-msg.user { background: var(--bubble-user); align-self: flex-end;   border-bottom-right-radius: 4px; }
+.mc-msg.user { background: var(--bubble-user); align-self: flex-end;   border-bottom-right-radius: 4px; color: var(--text-main); }
 .mc-msg-time {
   font-size: 11px; color: var(--text-muted);
   float: right; margin-left: 8px; margin-top: 3px; line-height: 1;
@@ -285,7 +319,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
   transition: box-shadow .2s;
 }
-.mc-input:focus { box-shadow: 0 0 0 2px rgba(0,196,140,.35); }
+.mc-input:focus { box-shadow: 0 0 0 2px rgba(0,0,0,.15); }
 .mc-input::placeholder { color: #aaa; }
 
 /* Botón send interactivo */
@@ -295,17 +329,17 @@
   background: var(--brand); border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   color: #fff;
-  box-shadow: 0 2px 6px rgba(0,196,140,.4);
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
   transition: background .2s, transform .2s, box-shadow .2s;
   -webkit-appearance: none;
 }
 .mc-send-btn:hover {
   background: var(--brand-dark);
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0,196,140,.5);
+  box-shadow: 0 4px 12px rgba(0,0,0,.25);
 }
 .mc-send-btn:active {
   transform: scale(.92);
-  box-shadow: 0 1px 4px rgba(0,196,140,.3);
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
 }
 .mc-send-btn svg { width: 20px; height: 20px; }

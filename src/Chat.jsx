@@ -5,8 +5,8 @@ function getTime() {
   return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
-export function Chat({ config, onClose }) {
-  const { webhookUrl, initialMessages = [], i18n = {} } = config
+export function Chat({ config, theme, onClose }) {
+  const { webhookUrl, initialMessages = [], i18n = {}, showWelcomeScreen = false } = config
   const t = i18n.en || {}
 
   const [messages, setMessages] = useState(() =>
@@ -15,10 +15,10 @@ export function Chat({ config, onClose }) {
   const [input, setInput]     = useState('')
   const [typing, setTyping]   = useState(false)
   const [closing, setClosing] = useState(false)
+  const [started, setStarted] = useState(!showWelcomeScreen)
   const messagesRef            = useRef(null)
   const inputRef               = useRef(null)
 
-  // Scroll al último mensaje
   function scrollBottom() {
     requestAnimationFrame(() => {
       if (messagesRef.current)
@@ -28,7 +28,6 @@ export function Chat({ config, onClose }) {
 
   useEffect(() => { scrollBottom() }, [messages, typing])
 
-  // Scroll cuando abre el teclado móvil
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
@@ -83,7 +82,7 @@ export function Chat({ config, onClose }) {
   }
 
   return (
-    <div class={`mc-window ${closing ? 'mc-closing' : ''}`}>
+    <div class={`mc-window ${closing ? 'mc-closing' : ''}`} style={theme}>
 
       <header class="mc-header">
         <div class="mc-header-info">
@@ -96,43 +95,57 @@ export function Chat({ config, onClose }) {
         <button class="mc-close-btn" onClick={handleClose} aria-label="Cerrar">✕</button>
       </header>
 
-      <div class="mc-messages" ref={messagesRef}>
-        <div class="mc-date-sep">Hoy</div>
-        {messages.map(msg => (
-          <div key={msg.id} class={`mc-msg ${msg.role}`}>
-            {msg.text}
-            <span class="mc-msg-time">{msg.time}</span>
+      {/* Welcome Screen */}
+      {!started ? (
+        <div class="mc-welcome">
+          <div class="mc-welcome-icon">🏃</div>
+          <h2>{t.title || 'Asistente virtual'}</h2>
+          <p>Estamos aquí para ayudarte 24/7.</p>
+          <button class="mc-welcome-btn" onClick={() => setStarted(true)}>
+            Iniciar conversación
+          </button>
+        </div>
+      ) : (
+        <>
+          <div class="mc-messages" ref={messagesRef}>
+            <div class="mc-date-sep">Hoy</div>
+            {messages.map(msg => (
+              <div key={msg.id} class={`mc-msg ${msg.role}`}>
+                {msg.text}
+                <span class="mc-msg-time">{msg.time}</span>
+              </div>
+            ))}
+            {typing && (
+              <div class="mc-typing">
+                <span /><span /><span />
+              </div>
+            )}
           </div>
-        ))}
-        {typing && (
-          <div class="mc-typing">
-            <span /><span /><span />
-          </div>
-        )}
-      </div>
 
-      <form class="mc-form" onSubmit={handleSubmit}>
-        <input
-          ref={inputRef}
-          class="mc-input"
-          type="text"
-          value={input}
-          onInput={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setTimeout(scrollBottom, 300)}
-          placeholder={t.inputPlaceholder || 'Escribe un mensaje...'}
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="sentences"
-          spellcheck="false"
-          enterkeyhint="send"
-        />
-        <button type="submit" class="mc-send-btn" aria-label="Enviar">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-          </svg>
-        </button>
-      </form>
+          <form class="mc-form" onSubmit={handleSubmit}>
+            <input
+              ref={inputRef}
+              class="mc-input"
+              type="text"
+              value={input}
+              onInput={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setTimeout(scrollBottom, 300)}
+              placeholder={t.inputPlaceholder || 'Escribe un mensaje...'}
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="sentences"
+              spellcheck="false"
+              enterkeyhint="send"
+            />
+            <button type="submit" class="mc-send-btn" aria-label="Enviar">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+            </button>
+          </form>
+        </>
+      )}
 
     </div>
   )
