@@ -55,6 +55,7 @@
     z-index: 99999;
   }
 }
+
 /* ══════════════════════════════════════════
    DESKTOP — ventana flotante
    ══════════════════════════════════════════ */
@@ -128,8 +129,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 12px 12px 16px;
-  padding-top: max(12px, env(safe-area-inset-top));
+  padding: 16px 16px 16px 20px;
+  padding-top: max(16px, env(safe-area-inset-top));
 }
 .mc-header-info { display: flex; align-items: center; gap: 10px; }
 .mc-avatar {
@@ -143,21 +144,30 @@
   font-size: 12px; opacity: .85;
   display: flex; align-items: center; gap: 5px;
 }
+
+/* Status dot parpadeante */
 .mc-status-dot {
-  width: 7px; height: 7px; border-radius: 50%;
+  width: 8px; height: 8px; border-radius: 50%;
   background: #7CFC00;
-  box-shadow: 0 0 0 2px rgba(124,252,0,.3);
-  animation: pulse 2s infinite;
   display: inline-block;
+  animation: blink 2s ease-in-out infinite;
 }
-@keyframes pulse {
-  0%,100% { box-shadow: 0 0 0 2px rgba(124,252,0,.3); }
-  50%      { box-shadow: 0 0 0 5px rgba(124,252,0,.0); }
+@keyframes blink {
+  0%,100% { opacity: 1;  box-shadow: 0 0 0 0px rgba(124,252,0,.6); }
+  50%      { opacity: .5; box-shadow: 0 0 0 5px rgba(124,252,0,.0); }
 }
+
+/* Botón cerrar interactivo */
 .mc-close-btn {
   background: none; border: none; color: rgba(255,255,255,.85);
   font-size: 20px; cursor: pointer; padding: 6px 8px;
   border-radius: 50%; line-height: 1; flex-shrink: 0;
+  transition: transform .2s, background .2s, color .2s;
+}
+.mc-close-btn:hover {
+  transform: scale(1.2);
+  background: rgba(255,255,255,.2);
+  color: #fff;
 }
 
 /* Mensajes */
@@ -168,7 +178,7 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  padding: 10px 10px 6px;
+  padding: 10px 12px 6px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -180,8 +190,8 @@
 }
 .mc-msg {
   max-width: 82%;
-  padding: 7px 10px 5px;
-  border-radius: 8px;
+  padding: 10px 14px 8px;
+  border-radius: 18px;
   font-size: 16px;
   line-height: 1.45;
   color: var(--text-main);
@@ -193,8 +203,8 @@
   from { opacity: 0; transform: scale(.93) translateY(4px); }
   to   { opacity: 1; transform: scale(1)   translateY(0); }
 }
-.mc-msg.bot  { background: var(--bubble-bot);  align-self: flex-start; border-top-left-radius: 2px; }
-.mc-msg.user { background: var(--bubble-user); align-self: flex-end;   border-top-right-radius: 2px; }
+.mc-msg.bot  { background: var(--bubble-bot);  align-self: flex-start; border-bottom-left-radius: 4px; }
+.mc-msg.user { background: var(--bubble-user); align-self: flex-end;   border-bottom-right-radius: 4px; }
 .mc-msg-time {
   font-size: 11px; color: var(--text-muted);
   float: right; margin-left: 8px; margin-top: 3px; line-height: 1;
@@ -205,8 +215,8 @@
   display: flex; gap: 4px;
   padding: 10px 12px; width: fit-content;
   background: var(--bubble-bot);
-  border-radius: 8px; border-top-left-radius: 2px;
-  margin: 0 10px 4px;
+  border-radius: 18px; border-bottom-left-radius: 4px;
+  margin: 0 12px 4px;
   box-shadow: var(--shadow);
   align-self: flex-start;
 }
@@ -230,8 +240,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
 .mc-input {
   flex: 1;
@@ -248,6 +258,8 @@
 }
 .mc-input:focus { box-shadow: 0 0 0 2px rgba(0,196,140,.35); }
 .mc-input::placeholder { color: #aaa; }
+
+/* Botón send interactivo */
 .mc-send-btn {
   flex-shrink: 0;
   width: 42px; height: 42px; border-radius: 50%;
@@ -255,8 +267,16 @@
   display: flex; align-items: center; justify-content: center;
   color: #fff;
   box-shadow: 0 2px 6px rgba(0,196,140,.4);
-  transition: background .15s, transform .1s;
+  transition: background .2s, transform .2s, box-shadow .2s;
   -webkit-appearance: none;
 }
-.mc-send-btn:active { transform: scale(.92); }
+.mc-send-btn:hover {
+  background: var(--brand-dark);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0,196,140,.5);
+}
+.mc-send-btn:active {
+  transform: scale(.92);
+  box-shadow: 0 1px 4px rgba(0,196,140,.3);
+}
 .mc-send-btn svg { width: 20px; height: 20px; }
