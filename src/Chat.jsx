@@ -1,31 +1,105 @@
 import { useState, useEffect, useRef } from 'preact/hooks'
 import './chat.css'
 
+const STORAGE_KEY   = 'mc_session'
+const HISTORY_KEY   = 'mc_history'
+const MAX_MESSAGES  = 8      // máximo de mensajes guardados (4 user + 4 bot)
+const TTL_MS        = 24 * 60 * 60 * 1000  // 24 horas en ms
+
 function getTime() {
   return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
+/* ── SESIÓN ─────────────────────────────────────────────────────────────────
+   Obtiene o crea un sessionId persistente en localStorage.
+   El mismo ID se usa en todas las pestañas del mismo navegador.
+────────────────────────────────────────────────────────────────────────── */
+function getSessionId() {
+  let id = localStorage.getItem(STORAGE_KEY)
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem(STORAGE_KEY, id)
+  }
+  return id
+}
+
+/* ── HISTORIAL ──────────────────────────────────────────────────────────────
+   Guarda y recupera los últimos MAX_MESSAGES mensajes.
+   Si han pasado más de 24h desde el último mensaje, se borra el historial.
+────────────────────────────────────────────────────────────────────────── */
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    if (!raw) return []
+    const { messages, lastAt } = JSON.parse(raw)
+    // Si pasaron más de 24h, historial expirado
+    if (Date.now() - lastAt > TTL_MS) {
+      localStorage.removeItem(HISTORY_KEY)
+      return []
+    }
+    return messages || []
+  } catch {
+    return []
+  }
+}
+
+function saveHistory(messages) {
+  try {
+    // Guarda solo los últimos MAX_MESSAGES mensajes
+    const trimmed = messages.slice(-MAX_MESSAGES)
+    localStorage.setItem(HISTORY_KEY, JSON.stringify({
+      messages: trimmed,
+      lastAt: Date.now()
+    }))
+  } catch {}
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY)
+  localStorage.removeItem(STORAGE_KEY)
+}
+
+/* ── COMPONENTE ─────────────────────────────────────────────────────────── */
 export function Chat({ config, theme, onClose }) {
   const {
     webhookUrl,
-    initialMessages   = [],
-    i18n              = {},
-    defaultLanguage   = 'es',
-    showWelcomeScreen = false,
+    initialMessages      = [],
+    i18n                 = {},
+    defaultLanguage      = 'es',
+    showWelcomeScreen    = false,
+    loadPreviousSession  = true,
   } = config
 
-  // Usa el idioma configurado
-  const t = i18n[defaultLanguage] || i18n.es || i18n.en || {}
+  const t         = i18n[defaultLanguage] || i18n.es || i18n.en || {}
+  const sessionId = useRef(getSessionId())
 
-  const [messages, setMessages] = useState(() =>
-    initialMessages.map(text => ({ id: Date.now() + Math.random(), text, role: 'bot', time: getTime() }))
-  )
-  const [input, setInput]     = useState('')
-  const [typing, setTyping]   = useState(false)
+  // Inicializar mensajes: historial guardado o mensajes iniciales
+  const [messages, setMessages] = useState(() => {
+    if (loadPreviousSession) {
+      const history = loadHistory()
+      if (history.length > 0) return history
+    }
+    return initialMessages.map(text => ({
+      id:   Date.now() + Math.random(),
+      text,
+      role: 'bot',
+      time: getTime()
+    }))
+  })
+
+  const [input,   setInput]   = useState('')
+  const [typing,  setTyping]  = useState(false)
   const [closing, setClosing] = useState(false)
   const [started, setStarted] = useState(!showWelcomeScreen)
   const messagesRef            = useRef(null)
   const inputRef               = useRef(null)
+
+  // Guardar historial cada vez que cambian los mensajes
+  useEffect(() => {
+    if (loadPreviousSession && messages.length > 0) {
+      saveHistory(messages)
+    }
+  }, [messages])
 
   function scrollBottom() {
     requestAnimationFrame(() => {
@@ -50,19 +124,29 @@ export function Chat({ config, theme, onClose }) {
   }
 
   function addMessage(text, role) {
-    setMessages(prev => [...prev, { id: Date.now() + Math.random(), text, role, time: getTime() }])
+    setMessages(prev => [...prev, {
+      id:   Date.now() + Math.random(),
+      text,
+      role,
+      time: getTime()
+    }])
   }
 
   async function sendMessage(text) {
     setTyping(true)
     try {
       const res = await fetch(webhookUrl, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, timestamp: Date.now() })
+        body: JSON.stringify({
+          action:    'sendMessage',
+          sessionId: sessionId.current,
+          chatInput: text,
+          metadata:  {}
+        })
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
+      const data  = await res.json()
       const reply = data?.output ?? data?.message ?? data?.text ?? '(Sin respuesta)'
       addMessage(reply, 'bot')
     } catch (err) {
