@@ -43,8 +43,8 @@ const DEFAULT_I18N = {
 }
 
 function Widget({ config }) {
-  const [open,   setOpen]   = useState(false)
-  const [badge,  setBadge]  = useState(false)
+  const [open,  setOpen]  = useState(false)
+  const [badge, setBadge] = useState(false)
 
   const theme      = THEMES[config.theme] || THEMES.green
   const themeStyle = Object.entries(theme)
@@ -60,7 +60,7 @@ function Widget({ config }) {
     setOpen(false)
   }
 
-  // Chat llama a esto cuando llega un mensaje pendiente con el chat cerrado
+  // Llamado desde Chat cuando llega respuesta con el chat cerrado
   function handlePending() {
     setBadge(true)
   }

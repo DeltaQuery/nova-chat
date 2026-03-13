@@ -345,7 +345,6 @@
 .mc-send-btn svg { width: 20px; height: 20px; }
 
 /* Links en mensajes */
-/* Links en mensajes */
 .mc-link {
   color: #0084FF;
   text-decoration: underline;
@@ -353,8 +352,24 @@
 }
 .mc-msg.user .mc-link { color: #005BBB; }
 
+/* Badge en FAB — NO agregar position:relative al .mc-fab */
+.mc-fab-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #FF3B30;
+  border: 2px solid #fff;
+  animation: badgePop .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes badgePop {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
 /* Badge en FAB */
-.mc-fab { position: relative; }
 .mc-fab-badge {
   position: absolute;
   top: 2px;

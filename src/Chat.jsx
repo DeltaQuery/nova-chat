@@ -10,29 +10,64 @@ function getTime() {
   return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
-/* ── MARKDOWN LINKS ─────────────────────────────────────────────────────────
-   Convierte [texto](url) en <a href="url" target="_blank">texto</a>
-   Solo maneja links — nada más.
+/* ── MARKDOWN PARSER ────────────────────────────────────────────────────────
+   Maneja en este orden:
+   1. Saltos de línea reales y literales \n  → <br>
+   2. **texto**                              → <strong>
+   3. [texto](url)                           → <a target="_blank">
 ────────────────────────────────────────────────────────────────────────── */
-function parseLinks(text) {
-  const parts = []
-  const regex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g
-  let last = 0
-  let match
+function parseMarkdown(text) {
+  if (!text) return null
 
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) {
-      parts.push(text.slice(last, match.index))
+  // Paso 1: normalizar saltos de línea literales \n a reales
+  const normalized = text.replace(/\\n/g, '\n')
+
+  // Paso 2: dividir por saltos de línea reales
+  const lines = normalized.split('\n')
+
+  const result = []
+
+  lines.forEach((line, lineIndex) => {
+    // Separador entre líneas
+    if (lineIndex > 0) result.push(<br key={`br-${lineIndex}`} />)
+
+    // Paso 3: parsear negritas y links dentro de cada línea
+    const regex = /\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g
+    let last  = 0
+    let match
+    let i     = 0
+
+    while ((match = regex.exec(line)) !== null) {
+      // Texto plano antes del match
+      if (match.index > last) {
+        result.push(line.slice(last, match.index))
+      }
+
+      if (match[1] !== undefined) {
+        // **negrita**
+        result.push(<strong key={`b-${lineIndex}-${i++}`}>{match[1]}</strong>)
+      } else {
+        // [texto](url)
+        result.push(
+          <a
+            key={`a-${lineIndex}-${i++}`}
+            href={match[3]}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="mc-link"
+          >
+            {match[2]}
+          </a>
+        )
+      }
+      last = match.index + match[0].length
     }
-    parts.push(
-      <a href={match[2]} target="_blank" rel="noopener noreferrer" class="mc-link">
-        {match[1]}
-      </a>
-    )
-    last = match.index + match[0].length
-  }
-  if (last < text.length) parts.push(text.slice(last))
-  return parts.length > 0 ? parts : text
+
+    // Texto restante
+    if (last < line.length) result.push(line.slice(last))
+  })
+
+  return result
 }
 
 /* ── SESIÓN ─────────────────────────────────────────────────────────────── */
@@ -72,7 +107,7 @@ function saveHistory(messages) {
 }
 
 /* ── COMPONENTE ─────────────────────────────────────────────────────────── */
-export function Chat({ config, theme, onClose }) {
+export function Chat({ config, theme, onClose, onPending }) {
   const {
     webhookUrl,
     initialMessages     = [],
@@ -85,6 +120,7 @@ export function Chat({ config, theme, onClose }) {
   const t         = i18n[defaultLanguage] || i18n.es || i18n.en || {}
   const sessionId = useRef(getSessionId())
 
+  // ── Estado inicial: historial o mensajes de bienvenida ──────────────────
   const [messages, setMessages] = useState(() => {
     if (loadPreviousSession) {
       const history = loadHistory()
@@ -98,36 +134,49 @@ export function Chat({ config, theme, onClose }) {
     }))
   })
 
-  const [input,    setInput]   = useState('')
-  const [typing,   setTyping]  = useState(false)
-  const [closing,  setClosing] = useState(false)
-  const [started,  setStarted] = useState(!showWelcomeScreen)
+  const [input,   setInput]   = useState('')
+  const [typing,  setTyping]  = useState(false)
+  const [closing, setClosing] = useState(false)
+  const [started, setStarted] = useState(!showWelcomeScreen)
 
-  /*
-    pendingRef — guarda la respuesta pendiente de la IA mientras el
-    componente está desmontado (el usuario cerró el chat mientras esperaba).
-    Cuando el usuario vuelve a abrir, se muestra el mensaje pendiente.
-  */
-  const pendingRef  = useRef(null)
+  // pendingRef: true cuando el componente fue desmontado
+  const pendingRef  = useRef(false)
+  // onPendingRef: referencia estable a onPending para usarla tras desmontar
+  const onPendingRef = useRef(onPending)
+  useEffect(() => { onPendingRef.current = onPending }, [onPending])
+
   const messagesRef = useRef(null)
   const inputRef    = useRef(null)
 
-  // Al montar: si hay un mensaje pendiente guardado, añadirlo
+  // Marcar como desmontado al cerrar
   useEffect(() => {
-    const pending = sessionStorage.getItem('mc_pending')
-    if (pending) {
-      sessionStorage.removeItem('mc_pending')
-      setMessages(prev => [...prev, JSON.parse(pending)])
-    }
+    return () => { pendingRef.current = true }
   }, [])
 
-  // Guardar historial cuando cambian los mensajes
+  // Al montar: cargar mensaje pendiente si existe (llegó con chat cerrado)
+  useEffect(() => {
+    const raw = sessionStorage.getItem('mc_pending')
+    if (!raw) return
+    sessionStorage.removeItem('mc_pending')
+    try {
+      const pending = JSON.parse(raw)
+      // Evitar duplicado: solo añadir si no está ya en el historial cargado
+      setMessages(prev => {
+        const exists = prev.some(m => m.id === pending.id)
+        return exists ? prev : [...prev, pending]
+      })
+    } catch {}
+  }, [])
+
+  // Guardar historial en localStorage cuando cambian los mensajes
+  // NOTA: este es el ÚNICO lugar donde se guarda. No hay guardado duplicado.
   useEffect(() => {
     if (loadPreviousSession && messages.length > 0) {
       saveHistory(messages)
     }
   }, [messages])
 
+  // ── Scroll ───────────────────────────────────────────────────────────────
   function scrollBottom() {
     requestAnimationFrame(() => {
       if (messagesRef.current)
@@ -145,6 +194,7 @@ export function Chat({ config, theme, onClose }) {
     return () => vv.removeEventListener('resize', handler)
   }, [])
 
+  // ── Handlers ─────────────────────────────────────────────────────────────
   function handleClose() {
     setClosing(true)
     setTimeout(onClose, 200)
@@ -172,21 +222,25 @@ export function Chat({ config, theme, onClose }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data  = await res.json()
       const reply = data?.output ?? data?.message ?? data?.text ?? '(Sin respuesta)'
+      const botMsg = {
+        id:   Date.now() + Math.random(),
+        text: reply,
+        role: 'bot',
+        time: getTime()
+      }
 
-      const botMsg = { id: Date.now() + Math.random(), text: reply, role: 'bot', time: getTime() }
-
-      /*
-        Si el componente sigue montado, añadimos el mensaje normalmente.
-        Si fue desmontado (usuario cerró el chat), guardamos en sessionStorage
-        para mostrarlo la próxima vez que abra el chat.
-      */
       if (!pendingRef.current) {
+        // Chat sigue abierto → mostrar normalmente
+        // El useEffect de messages se encarga de guardar en localStorage
         setMessages(prev => [...prev, botMsg])
       } else {
-        sessionStorage.setItem('mc_pending', JSON.stringify(botMsg))
-        // También guardar en historial para que persista
+        // Chat fue cerrado → guardar en sessionStorage y notificar badge
+        // Guardar en localStorage manualmente ya que el useEffect no corre
         const current = loadHistory()
         saveHistory([...current, botMsg])
+        sessionStorage.setItem('mc_pending', JSON.stringify(botMsg))
+        // Notificar al Widget para mostrar badge en FAB
+        if (onPendingRef.current) onPendingRef.current()
       }
     } catch (err) {
       if (!pendingRef.current) {
@@ -194,14 +248,9 @@ export function Chat({ config, theme, onClose }) {
       }
       console.error('[Marateca Chat]', err)
     } finally {
-      setTyping(false)
+      if (!pendingRef.current) setTyping(false)
     }
   }
-
-  // Marcar como desmontado cuando el componente se destruye
-  useEffect(() => {
-    return () => { pendingRef.current = true }
-  }, [])
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -219,6 +268,7 @@ export function Chat({ config, theme, onClose }) {
     }
   }
 
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div class={`mc-window ${closing ? 'mc-closing' : ''}`} style={theme}>
 
@@ -248,7 +298,7 @@ export function Chat({ config, theme, onClose }) {
             <div class="mc-date-sep">{t.today || 'Hoy'}</div>
             {messages.map(msg => (
               <div key={msg.id} class={`mc-msg ${msg.role}`}>
-                {parseLinks(msg.text)}
+                {parseMarkdown(msg.text)}
                 <span class="mc-msg-time">{msg.time}</span>
               </div>
             ))}
