@@ -43,12 +43,27 @@ const DEFAULT_I18N = {
 }
 
 function Widget({ config }) {
-  const [open, setOpen] = useState(false)
+  const [open,   setOpen]   = useState(false)
+  const [badge,  setBadge]  = useState(false)
 
   const theme      = THEMES[config.theme] || THEMES.green
   const themeStyle = Object.entries(theme)
     .map(([k, v]) => `${k}:${v}`)
     .join(';')
+
+  function handleOpen() {
+    setBadge(false)
+    setOpen(true)
+  }
+
+  function handleClose() {
+    setOpen(false)
+  }
+
+  // Chat llama a esto cuando llega un mensaje pendiente con el chat cerrado
+  function handlePending() {
+    setBadge(true)
+  }
 
   return (
     <>
@@ -56,26 +71,24 @@ function Widget({ config }) {
         <button
           class="mc-fab"
           style={themeStyle}
-          onClick={() => setOpen(true)}
+          onClick={handleOpen}
           aria-label="Abrir chat"
         >
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
           </svg>
+          {badge && <span class="mc-fab-badge" />}
         </button>
       )}
 
-      {/*
-        Backdrop — el clic cierra el chat.
-        El Chat internamente maneja si hay una respuesta pendiente.
-      */}
-      {open && <div class="mc-backdrop open" onClick={() => setOpen(false)} />}
+      {open && <div class="mc-backdrop open" onClick={handleClose} />}
 
       {open && (
         <Chat
           config={config}
           theme={themeStyle}
-          onClose={() => setOpen(false)}
+          onClose={handleClose}
+          onPending={handlePending}
         />
       )}
     </>
