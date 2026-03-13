@@ -2,7 +2,6 @@ import { render, h } from 'preact'
 import { useState } from 'preact/hooks'
 import { Chat } from './Chat.jsx'
 
-// Temas de color
 const THEMES = {
   green: {
     '--brand':       '#00C48C',
@@ -26,7 +25,6 @@ const THEMES = {
   },
 }
 
-// Textos por defecto según idioma
 const DEFAULT_I18N = {
   en: {
     title:            'Virtual assistant',
@@ -47,7 +45,7 @@ const DEFAULT_I18N = {
 function Widget({ config }) {
   const [open, setOpen] = useState(false)
 
-  const theme = THEMES[config.theme] || THEMES.green
+  const theme      = THEMES[config.theme] || THEMES.green
   const themeStyle = Object.entries(theme)
     .map(([k, v]) => `${k}:${v}`)
     .join(';')
@@ -67,6 +65,10 @@ function Widget({ config }) {
         </button>
       )}
 
+      {/*
+        Backdrop — el clic cierra el chat.
+        El Chat internamente maneja si hay una respuesta pendiente.
+      */}
       {open && <div class="mc-backdrop open" onClick={() => setOpen(false)} />}
 
       {open && (
@@ -83,7 +85,6 @@ function Widget({ config }) {
 export function createChat(userConfig) {
   const lang = userConfig.defaultLanguage || 'es'
 
-  // Merge de i18n: defaults del idioma + lo que pasa el usuario
   const defaultTexts = DEFAULT_I18N[lang] || DEFAULT_I18N.es
   const userTexts    = userConfig.i18n?.[lang] || {}
   const mergedTexts  = { ...defaultTexts, ...userTexts }
@@ -96,7 +97,6 @@ export function createChat(userConfig) {
     enableStreaming:     false,
     initialMessages:     [],
     ...userConfig,
-    // i18n siempre tiene el idioma correcto con defaults aplicados
     i18n: {
       ...userConfig.i18n,
       [lang]: mergedTexts,

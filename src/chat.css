@@ -343,3 +343,13 @@
   box-shadow: 0 1px 4px rgba(0,0,0,.15);
 }
 .mc-send-btn svg { width: 20px; height: 20px; }
+
+/* Links en mensajes */
+.mc-link {
+  color: #0084FF;
+  text-decoration: underline;
+  word-break: break-all;
+}
+.mc-msg.user .mc-link {
+  color: #005BBB;
+}

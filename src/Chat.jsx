@@ -1,19 +1,41 @@
 import { useState, useEffect, useRef } from 'preact/hooks'
 import './chat.css'
 
-const STORAGE_KEY   = 'mc_session'
-const HISTORY_KEY   = 'mc_history'
-const MAX_MESSAGES  = 8      // máximo de mensajes guardados (4 user + 4 bot)
-const TTL_MS        = 24 * 60 * 60 * 1000  // 24 horas en ms
+const STORAGE_KEY  = 'mc_session'
+const HISTORY_KEY  = 'mc_history'
+const MAX_MESSAGES = 8
+const TTL_MS       = 24 * 60 * 60 * 1000
 
 function getTime() {
   return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
-/* ── SESIÓN ─────────────────────────────────────────────────────────────────
-   Obtiene o crea un sessionId persistente en localStorage.
-   El mismo ID se usa en todas las pestañas del mismo navegador.
+/* ── MARKDOWN LINKS ─────────────────────────────────────────────────────────
+   Convierte [texto](url) en <a href="url" target="_blank">texto</a>
+   Solo maneja links — nada más.
 ────────────────────────────────────────────────────────────────────────── */
+function parseLinks(text) {
+  const parts = []
+  const regex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g
+  let last = 0
+  let match
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) {
+      parts.push(text.slice(last, match.index))
+    }
+    parts.push(
+      <a href={match[2]} target="_blank" rel="noopener noreferrer" class="mc-link">
+        {match[1]}
+      </a>
+    )
+    last = match.index + match[0].length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts.length > 0 ? parts : text
+}
+
+/* ── SESIÓN ─────────────────────────────────────────────────────────────── */
 function getSessionId() {
   let id = localStorage.getItem(STORAGE_KEY)
   if (!id) {
@@ -23,16 +45,12 @@ function getSessionId() {
   return id
 }
 
-/* ── HISTORIAL ──────────────────────────────────────────────────────────────
-   Guarda y recupera los últimos MAX_MESSAGES mensajes.
-   Si han pasado más de 24h desde el último mensaje, se borra el historial.
-────────────────────────────────────────────────────────────────────────── */
+/* ── HISTORIAL ──────────────────────────────────────────────────────────── */
 function loadHistory() {
   try {
     const raw = localStorage.getItem(HISTORY_KEY)
     if (!raw) return []
     const { messages, lastAt } = JSON.parse(raw)
-    // Si pasaron más de 24h, historial expirado
     if (Date.now() - lastAt > TTL_MS) {
       localStorage.removeItem(HISTORY_KEY)
       return []
@@ -45,35 +63,28 @@ function loadHistory() {
 
 function saveHistory(messages) {
   try {
-    // Guarda solo los últimos MAX_MESSAGES mensajes
     const trimmed = messages.slice(-MAX_MESSAGES)
     localStorage.setItem(HISTORY_KEY, JSON.stringify({
       messages: trimmed,
-      lastAt: Date.now()
+      lastAt:   Date.now()
     }))
   } catch {}
-}
-
-function clearHistory() {
-  localStorage.removeItem(HISTORY_KEY)
-  localStorage.removeItem(STORAGE_KEY)
 }
 
 /* ── COMPONENTE ─────────────────────────────────────────────────────────── */
 export function Chat({ config, theme, onClose }) {
   const {
     webhookUrl,
-    initialMessages      = [],
-    i18n                 = {},
-    defaultLanguage      = 'es',
-    showWelcomeScreen    = false,
-    loadPreviousSession  = true,
+    initialMessages     = [],
+    i18n                = {},
+    defaultLanguage     = 'es',
+    showWelcomeScreen   = false,
+    loadPreviousSession = true,
   } = config
 
   const t         = i18n[defaultLanguage] || i18n.es || i18n.en || {}
   const sessionId = useRef(getSessionId())
 
-  // Inicializar mensajes: historial guardado o mensajes iniciales
   const [messages, setMessages] = useState(() => {
     if (loadPreviousSession) {
       const history = loadHistory()
@@ -87,14 +98,30 @@ export function Chat({ config, theme, onClose }) {
     }))
   })
 
-  const [input,   setInput]   = useState('')
-  const [typing,  setTyping]  = useState(false)
-  const [closing, setClosing] = useState(false)
-  const [started, setStarted] = useState(!showWelcomeScreen)
-  const messagesRef            = useRef(null)
-  const inputRef               = useRef(null)
+  const [input,    setInput]   = useState('')
+  const [typing,   setTyping]  = useState(false)
+  const [closing,  setClosing] = useState(false)
+  const [started,  setStarted] = useState(!showWelcomeScreen)
 
-  // Guardar historial cada vez que cambian los mensajes
+  /*
+    pendingRef — guarda la respuesta pendiente de la IA mientras el
+    componente está desmontado (el usuario cerró el chat mientras esperaba).
+    Cuando el usuario vuelve a abrir, se muestra el mensaje pendiente.
+  */
+  const pendingRef  = useRef(null)
+  const messagesRef = useRef(null)
+  const inputRef    = useRef(null)
+
+  // Al montar: si hay un mensaje pendiente guardado, añadirlo
+  useEffect(() => {
+    const pending = sessionStorage.getItem('mc_pending')
+    if (pending) {
+      sessionStorage.removeItem('mc_pending')
+      setMessages(prev => [...prev, JSON.parse(pending)])
+    }
+  }, [])
+
+  // Guardar historial cuando cambian los mensajes
   useEffect(() => {
     if (loadPreviousSession && messages.length > 0) {
       saveHistory(messages)
@@ -124,12 +151,9 @@ export function Chat({ config, theme, onClose }) {
   }
 
   function addMessage(text, role) {
-    setMessages(prev => [...prev, {
-      id:   Date.now() + Math.random(),
-      text,
-      role,
-      time: getTime()
-    }])
+    const msg = { id: Date.now() + Math.random(), text, role, time: getTime() }
+    setMessages(prev => [...prev, msg])
+    return msg
   }
 
   async function sendMessage(text) {
@@ -148,14 +172,36 @@ export function Chat({ config, theme, onClose }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data  = await res.json()
       const reply = data?.output ?? data?.message ?? data?.text ?? '(Sin respuesta)'
-      addMessage(reply, 'bot')
+
+      const botMsg = { id: Date.now() + Math.random(), text: reply, role: 'bot', time: getTime() }
+
+      /*
+        Si el componente sigue montado, añadimos el mensaje normalmente.
+        Si fue desmontado (usuario cerró el chat), guardamos en sessionStorage
+        para mostrarlo la próxima vez que abra el chat.
+      */
+      if (!pendingRef.current) {
+        setMessages(prev => [...prev, botMsg])
+      } else {
+        sessionStorage.setItem('mc_pending', JSON.stringify(botMsg))
+        // También guardar en historial para que persista
+        const current = loadHistory()
+        saveHistory([...current, botMsg])
+      }
     } catch (err) {
-      addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
+      if (!pendingRef.current) {
+        addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
+      }
       console.error('[Marateca Chat]', err)
     } finally {
       setTyping(false)
     }
   }
+
+  // Marcar como desmontado cuando el componente se destruye
+  useEffect(() => {
+    return () => { pendingRef.current = true }
+  }, [])
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -202,7 +248,7 @@ export function Chat({ config, theme, onClose }) {
             <div class="mc-date-sep">{t.today || 'Hoy'}</div>
             {messages.map(msg => (
               <div key={msg.id} class={`mc-msg ${msg.role}`}>
-                {msg.text}
+                {parseLinks(msg.text)}
                 <span class="mc-msg-time">{msg.time}</span>
               </div>
             ))}
