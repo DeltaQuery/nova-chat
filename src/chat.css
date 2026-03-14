@@ -255,13 +255,6 @@
   object-fit: contain;
 }
 
-.mc-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 50%;
-}
-
 .mc-header-text h3 {
   font-size: 15px;
   font-weight: 600;

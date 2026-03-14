@@ -411,7 +411,7 @@ export function Chat({ config, theme, onClose, onPending }) {
         <div class="mc-welcome">
           <div class="mc-welcome-icon">🏃</div>
           <h2>{t.title || 'Asistente virtual'}</h2>
-          <p>Estamos aquí para ayudarte 24/7.</p>
+          <p>{t.welcomeSubtitle || 'Estamos aquí para ayudarte 24/7.'}</p>
           <button class="mc-welcome-btn" onClick={() => setStarted(true)}>
             {t.welcomeButton || 'Iniciar conversación'}
           </button>

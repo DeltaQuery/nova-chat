@@ -32,6 +32,7 @@ const DEFAULT_I18N = {
     welcomeButton: 'Start conversation',
     online: 'Online',
     today: 'Today',
+    welcomeSubtitle:  'We are here to help you 24/7.',
   },
   es: {
     title: 'Asistente virtual',
@@ -39,6 +40,7 @@ const DEFAULT_I18N = {
     welcomeButton: 'Iniciar conversación',
     online: 'En línea',
     today: 'Hoy',
+    welcomeSubtitle:  'Estamos aquí para ayudarte 24/7.',
   },
 }
 
