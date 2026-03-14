@@ -11,59 +11,33 @@ function getTime() {
 }
 
 /* ── MARKDOWN PARSER ────────────────────────────────────────────────────────
-   Maneja en este orden:
-   1. Saltos de línea reales y literales \n  → <br>
-   2. **texto**                              → <strong>
-   3. [texto](url)                           → <a target="_blank">
+   Maneja: **negrita**, [link](url), \n
 ────────────────────────────────────────────────────────────────────────── */
 function parseMarkdown(text) {
   if (!text) return null
-
-  // Paso 1: normalizar saltos de línea literales \n a reales
   const normalized = text.replace(/\\n/g, '\n')
-
-  // Paso 2: dividir por saltos de línea reales
-  const lines = normalized.split('\n')
-
-  const result = []
+  const lines      = normalized.split('\n')
+  const result     = []
 
   lines.forEach((line, lineIndex) => {
-    // Separador entre líneas
     if (lineIndex > 0) result.push(<br key={`br-${lineIndex}`} />)
 
-    // Paso 3: parsear negritas y links dentro de cada línea
     const regex = /\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g
-    let last  = 0
-    let match
-    let i     = 0
+    let last = 0, match, i = 0
 
     while ((match = regex.exec(line)) !== null) {
-      // Texto plano antes del match
-      if (match.index > last) {
-        result.push(line.slice(last, match.index))
-      }
-
+      if (match.index > last) result.push(line.slice(last, match.index))
       if (match[1] !== undefined) {
-        // **negrita**
         result.push(<strong key={`b-${lineIndex}-${i++}`}>{match[1]}</strong>)
       } else {
-        // [texto](url)
         result.push(
-          <a
-            key={`a-${lineIndex}-${i++}`}
-            href={match[3]}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="mc-link"
-          >
+          <a key={`a-${lineIndex}-${i++}`} href={match[3]} target="_blank" rel="noopener noreferrer" class="mc-link">
             {match[2]}
           </a>
         )
       }
       last = match.index + match[0].length
     }
-
-    // Texto restante
     if (last < line.length) result.push(line.slice(last))
   })
 
@@ -91,16 +65,13 @@ function loadHistory() {
       return []
     }
     return messages || []
-  } catch {
-    return []
-  }
+  } catch { return [] }
 }
 
 function saveHistory(messages) {
   try {
-    const trimmed = messages.slice(-MAX_MESSAGES)
     localStorage.setItem(HISTORY_KEY, JSON.stringify({
-      messages: trimmed,
+      messages: messages.slice(-MAX_MESSAGES),
       lastAt:   Date.now()
     }))
   } catch {}
@@ -115,22 +86,19 @@ export function Chat({ config, theme, onClose, onPending }) {
     defaultLanguage     = 'es',
     showWelcomeScreen   = false,
     loadPreviousSession = true,
+    enableStreaming      = false,
   } = config
 
   const t         = i18n[defaultLanguage] || i18n.es || i18n.en || {}
   const sessionId = useRef(getSessionId())
 
-  // ── Estado inicial: historial o mensajes de bienvenida ──────────────────
   const [messages, setMessages] = useState(() => {
     if (loadPreviousSession) {
       const history = loadHistory()
       if (history.length > 0) return history
     }
     return initialMessages.map(text => ({
-      id:   Date.now() + Math.random(),
-      text,
-      role: 'bot',
-      time: getTime()
+      id: Date.now() + Math.random(), text, role: 'bot', time: getTime()
     }))
   })
 
@@ -139,44 +107,28 @@ export function Chat({ config, theme, onClose, onPending }) {
   const [closing, setClosing] = useState(false)
   const [started, setStarted] = useState(!showWelcomeScreen)
 
-  // pendingRef: true cuando el componente fue desmontado
-  const pendingRef  = useRef(false)
-  // onPendingRef: referencia estable a onPending para usarla tras desmontar
+  const pendingRef   = useRef(false)
   const onPendingRef = useRef(onPending)
   useEffect(() => { onPendingRef.current = onPending }, [onPending])
+  const messagesRef  = useRef(null)
+  const inputRef     = useRef(null)
 
-  const messagesRef = useRef(null)
-  const inputRef    = useRef(null)
+  useEffect(() => { return () => { pendingRef.current = true } }, [])
 
-  // Marcar como desmontado al cerrar
-  useEffect(() => {
-    return () => { pendingRef.current = true }
-  }, [])
-
-  // Al montar: cargar mensaje pendiente si existe (llegó con chat cerrado)
   useEffect(() => {
     const raw = sessionStorage.getItem('mc_pending')
     if (!raw) return
     sessionStorage.removeItem('mc_pending')
     try {
       const pending = JSON.parse(raw)
-      // Evitar duplicado: solo añadir si no está ya en el historial cargado
-      setMessages(prev => {
-        const exists = prev.some(m => m.id === pending.id)
-        return exists ? prev : [...prev, pending]
-      })
+      setMessages(prev => prev.some(m => m.id === pending.id) ? prev : [...prev, pending])
     } catch {}
   }, [])
 
-  // Guardar historial en localStorage cuando cambian los mensajes
-  // NOTA: este es el ÚNICO lugar donde se guarda. No hay guardado duplicado.
   useEffect(() => {
-    if (loadPreviousSession && messages.length > 0) {
-      saveHistory(messages)
-    }
+    if (loadPreviousSession && messages.length > 0) saveHistory(messages)
   }, [messages])
 
-  // ── Scroll ───────────────────────────────────────────────────────────────
   function scrollBottom() {
     requestAnimationFrame(() => {
       if (messagesRef.current)
@@ -194,7 +146,6 @@ export function Chat({ config, theme, onClose, onPending }) {
     return () => vv.removeEventListener('resize', handler)
   }, [])
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
   function handleClose() {
     setClosing(true)
     setTimeout(onClose, 200)
@@ -206,59 +157,142 @@ export function Chat({ config, theme, onClose, onPending }) {
     return msg
   }
 
-  async function sendMessage(text) {
+  /* ── MODO NORMAL ──────────────────────────────────────────────────────── */
+  async function sendNormal(text) {
     setTyping(true)
     try {
       const res = await fetch(webhookUrl, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action:    'sendMessage',
-          sessionId: sessionId.current,
-          chatInput: text,
-          metadata:  {}
+          action: 'sendMessage', sessionId: sessionId.current,
+          chatInput: text, metadata: {}
         })
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data  = await res.json()
       const reply = data?.output ?? data?.message ?? data?.text ?? '(Sin respuesta)'
-      const botMsg = {
-        id:   Date.now() + Math.random(),
-        text: reply,
-        role: 'bot',
-        time: getTime()
-      }
+      const botMsg = { id: Date.now() + Math.random(), text: reply, role: 'bot', time: getTime() }
 
       if (!pendingRef.current) {
-        // Chat sigue abierto → mostrar normalmente
-        // El useEffect de messages se encarga de guardar en localStorage
         setMessages(prev => [...prev, botMsg])
       } else {
-        // Chat fue cerrado → guardar en sessionStorage y notificar badge
-        // Guardar en localStorage manualmente ya que el useEffect no corre
         const current = loadHistory()
         saveHistory([...current, botMsg])
         sessionStorage.setItem('mc_pending', JSON.stringify(botMsg))
-        // Notificar al Widget para mostrar badge en FAB
         if (onPendingRef.current) onPendingRef.current()
       }
     } catch (err) {
-      if (!pendingRef.current) {
+      if (!pendingRef.current)
         addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
-      }
       console.error('[Marateca Chat]', err)
     } finally {
       if (!pendingRef.current) setTyping(false)
     }
   }
 
+  /* ── MODO STREAMING ───────────────────────────────────────────────────── */
+  async function sendStreaming(text) {
+    setTyping(true)
+
+    // Crear la burbuja del bot vacía — la iremos llenando con los chunks
+    const botId   = Date.now() + Math.random()
+    const botTime = getTime()
+    const emptyMsg = { id: botId, text: '', role: 'bot', time: botTime }
+
+    if (pendingRef.current) return  // si ya cerraron, no hacer nada
+
+    setMessages(prev => [...prev, emptyMsg])
+    setTyping(false)  // ocultamos el indicador de puntos, ya hay burbuja
+
+    let accumulated = ''
+
+    try {
+      const res = await fetch(webhookUrl, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sendMessage', sessionId: sessionId.current,
+          chatInput: text, metadata: {}
+        })
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+      const reader  = res.body.getReader()
+      const decoder = new TextDecoder()
+      let   buffer  = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        if (pendingRef.current) { reader.cancel(); break }
+
+        buffer += decoder.decode(value, { stream: true })
+
+        // n8n envía chunks NDJSON pegados sin separador entre ellos.
+        // Los separamos buscando los límites "}{" entre objetos JSON.
+        // Estrategia: extraer todos los JSON completos del buffer.
+        let start = 0
+        while (true) {
+          // Buscar el inicio de un objeto JSON
+          const open = buffer.indexOf('{', start)
+          if (open === -1) break
+
+          // Intentar parsear desde 'open' buscando el cierre correcto
+          let depth = 0
+          let end   = -1
+          for (let i = open; i < buffer.length; i++) {
+            if (buffer[i] === '{') depth++
+            if (buffer[i] === '}') depth--
+            if (depth === 0) { end = i; break }
+          }
+
+          if (end === -1) break  // JSON incompleto, esperar más datos
+
+          const jsonStr = buffer.slice(open, end + 1)
+          start = end + 1
+
+          try {
+            const chunk = JSON.parse(jsonStr)
+            // Solo nos interesan los chunks de tipo "item" con contenido
+            if (chunk.type === 'item' && chunk.content) {
+              accumulated += chunk.content
+              // Actualizar la burbuja del bot con el texto acumulado
+              setMessages(prev => prev.map(m =>
+                m.id === botId ? { ...m, text: accumulated } : m
+              ))
+              scrollBottom()
+            }
+          } catch {}
+
+          buffer = buffer.slice(start)
+          start  = 0
+        }
+      }
+    } catch (err) {
+      if (!pendingRef.current) {
+        setMessages(prev => prev.map(m =>
+          m.id === botId
+            ? { ...m, text: '⚠️ No pude conectar con el servidor. Intenta de nuevo.' }
+            : m
+        ))
+      }
+      console.error('[Marateca Chat]', err)
+    }
+  }
+
+  /* ── SUBMIT ───────────────────────────────────────────────────────────── */
   function handleSubmit(e) {
     e.preventDefault()
     const text = input.trim()
     if (!text) return
     setInput('')
     addMessage(text, 'user')
-    sendMessage(text)
+    if (enableStreaming) {
+      sendStreaming(text)
+    } else {
+      sendNormal(text)
+    }
   }
 
   function handleKeyDown(e) {
@@ -268,7 +302,7 @@ export function Chat({ config, theme, onClose, onPending }) {
     }
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  /* ── RENDER ───────────────────────────────────────────────────────────── */
   return (
     <div class={`mc-window ${closing ? 'mc-closing' : ''}`} style={theme}>
 

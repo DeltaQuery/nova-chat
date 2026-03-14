@@ -103,7 +103,7 @@ export function createChat(userConfig) {
   const mergedTexts  = { ...defaultTexts, ...userTexts }
 
   const finalConfig = {
-    theme:               'blue',
+    theme:               'green',
     defaultLanguage:     'es',
     showWelcomeScreen:   false,
     loadPreviousSession: true,
