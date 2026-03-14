@@ -7,13 +7,13 @@ export default defineConfig({
   build: {
     lib: {
       entry:    resolve(__dirname, 'src/index.jsx'),
-      name:     'MaratecaChat',
-      fileName: 'marateca-chat',
+      name:     'NovaChat',
+      fileName: 'nova-chat',
       formats:  ['iife'],
     },
     rollupOptions: {
       output: {
-        assetFileNames: 'marateca-chat.css',
+        assetFileNames: 'nova-chat.css',
       }
     }
   },

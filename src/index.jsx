@@ -122,15 +122,15 @@ export function createChat(userConfig) {
     }
   }
 
-  const targetSelector = finalConfig.target || '#marateca-chat'
+  const targetSelector = finalConfig.target || '#nova-chat'
   let container = document.querySelector(targetSelector)
 
   if (!container) {
     container = document.createElement('div')
-    container.id = 'marateca-chat-root'
+    container.id = 'nova-chat-root'
     document.body.appendChild(container)
   } else {
-    container.id = 'marateca-chat-root'
+    container.id = 'nova-chat-root'
   }
 
   render(h(Widget, { config: finalConfig }), container)

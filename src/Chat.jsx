@@ -262,7 +262,7 @@ export function Chat({ config, theme, onClose, onPending }) {
     } catch (err) {
       if (!pendingRef.current)
         addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
-      console.error('[Marateca Chat]', err)
+      console.error('[Nova Chat]', err)
     } finally {
       if (!pendingRef.current) setTyping(false)
     }
@@ -367,7 +367,7 @@ export function Chat({ config, theme, onClose, onPending }) {
         setTyping(false)
         addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
       }
-      console.error('[Marateca Chat]', err)
+      console.error('[Nova Chat]', err)
     }
   }
 

@@ -1,1 +1,1 @@
-# marateca-chat
+# nova-chat
