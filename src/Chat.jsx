@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'preact/hooks'
 import './chat.css'
 
-const STORAGE_KEY  = 'mc_session'
-const HISTORY_KEY  = 'mc_history'
-const MAX_MESSAGES = 8
-const TTL_MS       = 24 * 60 * 60 * 1000
+const STORAGE_KEY    = 'mc_session'
+const HISTORY_KEY    = 'mc_history'
+const MAX_MESSAGES   = 8
+const TTL_MS         = 24 * 60 * 60 * 1000
+const TYPING_SPEED   = 8   // ms por carácter — ajusta este valor
 
 function getTime() {
   return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
@@ -42,10 +43,7 @@ function parseMarkdown(text) {
   return result
 }
 
-/* ── NDJSON PARSER ──────────────────────────────────────────────────────────
-   n8n envía objetos JSON pegados sin separador: {...}{...}{...}
-   Extrae todos los JSON completos del buffer y devuelve el resto.
-────────────────────────────────────────────────────────────────────────── */
+/* ── NDJSON PARSER ──────────────────────────────────────────────────────── */
 function extractJsonChunks(buffer) {
   const chunks = []
   let pos = 0
@@ -61,14 +59,17 @@ function extractJsonChunks(buffer) {
       if (depth === 0) { end = i; break }
     }
 
-    if (end === -1) break  // JSON incompleto, esperar más datos
+    if (end === -1) break
 
     try { chunks.push(JSON.parse(buffer.slice(open, end + 1))) } catch {}
     pos = end + 1
   }
 
-  // Conservar lo que quedó incompleto
-  const remaining = pos < buffer.length ? buffer.slice(buffer.lastIndexOf('{', buffer.length) > pos - 1 ? buffer.lastIndexOf('{', buffer.length) : pos) : ''
+  const remaining = pos < buffer.length
+    ? buffer.slice(buffer.lastIndexOf('{', buffer.length) > pos - 1
+        ? buffer.lastIndexOf('{', buffer.length)
+        : pos)
+    : ''
   return { chunks, remaining }
 }
 
@@ -141,6 +142,15 @@ export function Chat({ config, theme, onClose, onPending }) {
   const messagesRef  = useRef(null)
   const inputRef     = useRef(null)
 
+  // Cola de caracteres pendientes de mostrar
+  const charQueueRef    = useRef([])
+  // Texto ya mostrado en pantalla para la burbuja actual
+  const displayedRef    = useRef('')
+  // ID del intervalo de escritura
+  const typingTimerRef  = useRef(null)
+  // ID del mensaje bot activo en streaming
+  const streamBotIdRef  = useRef(null)
+
   useEffect(() => { return () => { pendingRef.current = true } }, [])
 
   useEffect(() => {
@@ -173,6 +183,44 @@ export function Chat({ config, theme, onClose, onPending }) {
     vv.addEventListener('resize', handler, { passive: true })
     return () => vv.removeEventListener('resize', handler)
   }, [])
+
+  /* ── MOTOR DE ESCRITURA ───────────────────────────────────────────────── */
+  function startTypingTimer(botId) {
+    if (typingTimerRef.current) return  // ya está corriendo
+
+    typingTimerRef.current = setInterval(() => {
+      if (charQueueRef.current.length === 0) return
+
+      // Sacar un carácter de la cola
+      const char = charQueueRef.current.shift()
+      displayedRef.current += char
+
+      const displayed = displayedRef.current
+      setMessages(prev => prev.map(m =>
+        m.id === botId ? { ...m, text: displayed } : m
+      ))
+      scrollBottom()
+    }, TYPING_SPEED)
+  }
+
+  function stopTypingTimer() {
+    if (typingTimerRef.current) {
+      clearInterval(typingTimerRef.current)
+      typingTimerRef.current = null
+    }
+  }
+
+  // Esperar a que la cola se vacíe completamente
+  function waitQueueEmpty() {
+    return new Promise(resolve => {
+      const check = setInterval(() => {
+        if (charQueueRef.current.length === 0) {
+          clearInterval(check)
+          resolve()
+        }
+      }, 20)
+    })
+  }
 
   function handleClose() {
     setClosing(true)
@@ -225,11 +273,15 @@ export function Chat({ config, theme, onClose, onPending }) {
 
     setTyping(true)
 
-    const botId      = Date.now() + Math.random()
-    const botTime    = getTime()
-    let   botCreated  = false  // burbuja creada solo cuando llega el primer chunk
-    let   accumulated = ''
-    let   hasChunks   = false  // llegó al menos un type:"item"
+    const botId     = Date.now() + Math.random()
+    const botTime   = getTime()
+    let   botCreated = false
+    let   hasChunks  = false
+
+    // Resetear cola y estado de escritura
+    charQueueRef.current   = []
+    displayedRef.current   = ''
+    streamBotIdRef.current = botId
 
     try {
       const res = await fetch(webhookUrl, {
@@ -253,7 +305,6 @@ export function Chat({ config, theme, onClose, onPending }) {
         if (pendingRef.current) { reader.cancel(); break }
 
         buffer += decoder.decode(value, { stream: true })
-
         const { chunks, remaining } = extractJsonChunks(buffer)
         buffer = remaining
 
@@ -262,23 +313,22 @@ export function Chat({ config, theme, onClose, onPending }) {
 
             case 'item': {
               if (!chunk.content) break
-              hasChunks    = true
-              accumulated += chunk.content
+              hasChunks = true
 
               if (!botCreated) {
-                // Primer chunk: quitar puntos, crear burbuja
+                // Primer chunk: ocultar puntos, crear burbuja vacía
                 setTyping(false)
                 setMessages(prev => [...prev, {
-                  id: botId, text: accumulated, role: 'bot', time: botTime
+                  id: botId, text: '', role: 'bot', time: botTime
                 }])
                 botCreated = true
-              } else {
-                // Chunks siguientes: actualizar burbuja existente
-                setMessages(prev => prev.map(m =>
-                  m.id === botId ? { ...m, text: accumulated } : m
-                ))
+                startTypingTimer(botId)
               }
-              scrollBottom()
+
+              // Meter cada carácter del chunk en la cola
+              for (const char of chunk.content) {
+                charQueueRef.current.push(char)
+              }
               break
             }
 
@@ -291,32 +341,30 @@ export function Chat({ config, theme, onClose, onPending }) {
                   id: botId, text: errText, role: 'bot', time: botTime
                 }])
                 botCreated = true
-              } else {
-                setMessages(prev => prev.map(m =>
-                  m.id === botId ? { ...m, text: accumulated + '\n' + errText } : m
-                ))
               }
               break
             }
-
-            // type:"begin" y type:"end" — ignorados, solo nos importa el contenido
           }
         }
       }
 
-      // Stream terminó sin ningún chunk type:item
+      // Esperar a que todos los caracteres de la cola se muestren
+      if (botCreated) {
+        await waitQueueEmpty()
+      }
+
+      stopTypingTimer()
+
       if (!hasChunks && !pendingRef.current) {
         setTyping(false)
         addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
       }
 
     } catch (err) {
-      if (!pendingRef.current) {
+      stopTypingTimer()
+      if (!pendingRef.current && !botCreated) {
         setTyping(false)
-        if (!botCreated) {
-          addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
-        }
-        // Si la burbuja ya existe con texto parcial, la dejamos — es mejor que borrarla
+        addMessage('⚠️ No pude conectar con el servidor. Intenta de nuevo.', 'bot')
       }
       console.error('[Marateca Chat]', err)
     }
