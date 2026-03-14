@@ -16,19 +16,31 @@
   <script src="./marateca-chat.iife.js"></script>
   <script>
     MaratecaChat.createChat({
+      // ── Requerido ────────────────────────────────────────────────────────
       webhookUrl: 'https://n8n.marateca.com.ve/webhook/9069eb9b-ad4a-40ae-b26d-12265a8ab7b1/chat',
-      target: '#marateca-chat',
+ 
+      // ── Apariencia ───────────────────────────────────────────────────────
+      theme: 'blue',          // 'green' | 'blue' | 'dark' | 'silver'
+ 
+      // ── Comportamiento ───────────────────────────────────────────────────
+      defaultLanguage:     'es',    // 'es' | 'en'
+      showWelcomeScreen:   false,   // true = muestra pantalla de bienvenida
+      loadPreviousSession: true,    // true = carga historial de 24h
+      enableStreaming:     true,    // true = texto aparece letra por letra
+ 
+      // ── Mensaje inicial ──────────────────────────────────────────────────
       initialMessages: [
         "Hola! Soy Nova, la IA de Marateca 💙 Ponme a prueba, respondo rápido!"
       ],
+ 
+      // ── Textos de la interfaz ────────────────────────────────────────────
       i18n: {
-        en: {
-          title: 'Asistente virtual 24/7',
+        es: {
+          title:            'Asistente virtual 24/7',
           inputPlaceholder: 'Escribe tu consulta...',
         }
       }
     })
   </script>
-
 </body>
 </html>
