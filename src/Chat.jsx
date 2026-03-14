@@ -393,7 +393,7 @@ export function Chat({ config, theme, onClose, onPending }) {
 
       <header class="mc-header">
         <div class="mc-header-info">
-          <div class={`mc-avatar${avatar ? ' mc-avatar--custom' : ''}`}>
+          <div class={`mc-avatar${config.avatar ? ' mc-avatar--custom' : ''}`}>
             {config.avatar
               ? <img src={config.avatar} alt="avatar" />
               : '🏃'}
