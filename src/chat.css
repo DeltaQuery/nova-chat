@@ -92,7 +92,6 @@
       opacity: 1;
       transform: translateY(0);
     }
-
     to {
       opacity: 0;
       transform: translateY(30px);
@@ -179,7 +178,6 @@
       opacity: 0;
       transform: scale(.85);
     }
-
     to {
       opacity: 1;
       transform: scale(1);
@@ -191,7 +189,6 @@
       opacity: 1;
       transform: scale(1);
     }
-
     to {
       opacity: 0;
       transform: scale(.85);
@@ -199,13 +196,8 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 }
 
@@ -246,7 +238,7 @@
 /* Con imagen personalizada: sin círculo, sin fondo */
 .mc-avatar--custom {
   background: transparent;
-  border-radius: 0%;
+  border-radius: 0;
 }
 
 .mc-avatar img {
@@ -259,6 +251,7 @@
   font-size: 15px;
   font-weight: 600;
   line-height: 1.2;
+  color: #fff !important;
 }
 
 .mc-header-text span {
@@ -267,6 +260,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  color: #fff !important;
 }
 
 /* Status dot parpadeante */
@@ -280,20 +274,17 @@
 }
 
 @keyframes blink {
-
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
     box-shadow: 0 0 0 0px rgba(124, 252, 0, .6);
   }
-
   50% {
     opacity: .5;
     box-shadow: 0 0 0 5px rgba(124, 252, 0, .0);
   }
 }
 
-/* Botón cerrar interactivo */
+/* Botón cerrar */
 .mc-close-btn {
   background: none;
   border: none;
@@ -414,7 +405,6 @@
     opacity: 0;
     transform: scale(.93) translateY(4px);
   }
-
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -466,25 +456,12 @@
   animation: tdot 1.2s infinite ease-in-out;
 }
 
-.mc-typing span:nth-child(2) {
-  animation-delay: .2s;
-}
-
-.mc-typing span:nth-child(3) {
-  animation-delay: .4s;
-}
+.mc-typing span:nth-child(2) { animation-delay: .2s; }
+.mc-typing span:nth-child(3) { animation-delay: .4s; }
 
 @keyframes tdot {
-
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-  }
-
-  30% {
-    transform: translateY(-6px);
-  }
+  0%, 60%, 100% { transform: translateY(0); }
+  30%            { transform: translateY(-6px); }
 }
 
 /* Form */
@@ -522,7 +499,7 @@
   color: #aaa;
 }
 
-/* Botón send interactivo */
+/* Botón send */
 .mc-send-btn {
   flex-shrink: 0;
   width: 42px;
@@ -567,7 +544,7 @@
   color: #005BBB;
 }
 
-/* Badge en FAB — NO agregar position:relative al .mc-fab */
+/* Badge en FAB */
 .mc-fab-badge {
   position: absolute;
   top: 2px;
@@ -581,11 +558,6 @@
 }
 
 @keyframes badgePop {
-  from {
-    transform: scale(0);
-  }
-
-  to {
-    transform: scale(1);
-  }
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
 }
