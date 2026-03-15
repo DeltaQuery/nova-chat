@@ -86,6 +86,8 @@ function Widget({ config }) {
         </button>
       )}
 
+      {open && <div class="mc-backdrop open" onClick={handleClose} />}
+
       {open && (
         <Chat
           config={config}
@@ -94,8 +96,6 @@ function Widget({ config }) {
           onPending={handlePending}
         />
       )}
-
-      {open && <div class="mc-backdrop open" onClick={handleClose} />}
     </>
   )
 }

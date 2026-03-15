@@ -165,7 +165,7 @@
     background: var(--bg-chat);
     box-shadow: 0 8px 40px rgba(0, 0, 0, .22);
     overflow: hidden;
-    z-index: 99999;
+    z-index: 10000;
     transform-origin: bottom right;
     animation: popUp .22s cubic-bezier(.34, 1.56, .64, 1);
   }
