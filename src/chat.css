@@ -65,9 +65,10 @@
   }
 
   .mc-fab-icon {
-    width: 38px;
-    height: 38px;
+    /*width: 38px; no hace nada*/
+    height: 62%;
     object-fit: contain;
+    padding: 0 !important;
   }
 
   .mc-window {
@@ -134,11 +135,12 @@
   }
 
   .mc-fab-icon {
-    width: 38px;
-    height: 38px;
+    /*width: 38px; no hace nada*/
+    height: 62%;
     object-fit: contain;
+    padding: 0 !important;
   }
-
+  
   .mc-backdrop {
     display: none;
     position: fixed;
