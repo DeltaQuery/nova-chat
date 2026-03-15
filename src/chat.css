@@ -56,6 +56,7 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
     z-index: 99998;
     transition: transform .2s, background .2s;
+    padding: 0 !important;
   }
 
   .mc-fab svg {
@@ -68,7 +69,6 @@
     /*width: 38px; no hace nada*/
     height: 62%;
     object-fit: contain;
-    padding: 0 !important;
   }
 
   .mc-window {
@@ -93,6 +93,7 @@
       opacity: 1;
       transform: translateY(0);
     }
+
     to {
       opacity: 0;
       transform: translateY(30px);
@@ -121,6 +122,7 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
     z-index: 99998;
     transition: transform .2s, background .2s;
+    padding: 0 !important;
   }
 
   .mc-fab:hover {
@@ -138,9 +140,8 @@
     /*width: 38px; no hace nada*/
     height: 62%;
     object-fit: contain;
-    padding: 0 !important;
   }
-  
+
   .mc-backdrop {
     display: none;
     position: fixed;
@@ -180,6 +181,7 @@
       opacity: 0;
       transform: scale(.85);
     }
+
     to {
       opacity: 1;
       transform: scale(1);
@@ -191,6 +193,7 @@
       opacity: 1;
       transform: scale(1);
     }
+
     to {
       opacity: 0;
       transform: scale(.85);
@@ -198,8 +201,13 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 }
 
@@ -276,10 +284,13 @@
 }
 
 @keyframes blink {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     box-shadow: 0 0 0 0px rgba(124, 252, 0, .6);
   }
+
   50% {
     opacity: .5;
     box-shadow: 0 0 0 5px rgba(124, 252, 0, .0);
@@ -407,6 +418,7 @@
     opacity: 0;
     transform: scale(.93) translateY(4px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -458,12 +470,25 @@
   animation: tdot 1.2s infinite ease-in-out;
 }
 
-.mc-typing span:nth-child(2) { animation-delay: .2s; }
-.mc-typing span:nth-child(3) { animation-delay: .4s; }
+.mc-typing span:nth-child(2) {
+  animation-delay: .2s;
+}
+
+.mc-typing span:nth-child(3) {
+  animation-delay: .4s;
+}
 
 @keyframes tdot {
-  0%, 60%, 100% { transform: translateY(0); }
-  30%            { transform: translateY(-6px); }
+
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+
+  30% {
+    transform: translateY(-6px);
+  }
 }
 
 /* Form */
@@ -560,6 +585,11 @@
 }
 
 @keyframes badgePop {
-  from { transform: scale(0); }
-  to   { transform: scale(1); }
+  from {
+    transform: scale(0);
+  }
+
+  to {
+    transform: scale(1);
+  }
 }
