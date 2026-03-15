@@ -1,6 +1,7 @@
 import { render, h } from 'preact'
 import { useState } from 'preact/hooks'
 import { Chat } from './Chat.jsx'
+import novaIconDefault from '../public/nova-icon.png'
 
 const THEMES = {
   green: {
@@ -32,7 +33,7 @@ const DEFAULT_I18N = {
     welcomeButton: 'Start conversation',
     online: 'Online',
     today: 'Today',
-    welcomeSubtitle:  'We are here to help you 24/7.',
+    welcomeSubtitle: 'We are here to help you 24/7.',
   },
   es: {
     title: 'Asistente virtual',
@@ -40,7 +41,7 @@ const DEFAULT_I18N = {
     welcomeButton: 'Iniciar conversación',
     online: 'En línea',
     today: 'Hoy',
-    welcomeSubtitle:  'Estamos aquí para ayudarte 24/7.',
+    welcomeSubtitle: 'Estamos aquí para ayudarte 24/7.',
   },
 }
 
@@ -77,7 +78,11 @@ function Widget({ config }) {
           aria-label="Abrir chat"
         >
           {config.fabIcon
-            ? <img src={config.fabIcon} alt="" class="mc-fab-icon" />
+            ? <img
+              src={config.fabIcon || novaIconDefault}
+              alt="Nova Icon"
+              class="mc-fab-icon"
+            />
             : <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
             </svg>
